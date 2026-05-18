@@ -1,0 +1,383 @@
+openapi: 3.1.0
+info:
+  title: StudySidekickAI API
+  version: 1.0.0
+  description: V1 API contract for StudySidekickAI.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+            requestId: { type: string }
+          required: [code, message, requestId]
+      required: [error]
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        role: { type: string, enum: [student, teacher, admin] }
+        displayName: { type: string }
+        gradeLevel: { type: integer, minimum: 1, maximum: 12, nullable: true }
+      required: [id, role, displayName]
+    Tokens:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+      required: [accessToken, refreshToken]
+    ToolMode:
+      type: string
+      enum:
+        - explain_simply
+        - quiz_me
+        - study_guide_maker
+        - essay_brainstormer
+        - project_idea_generator
+        - code_helper
+        - teacher_approved_prompt_builder
+paths:
+  /auth/signup:
+    post:
+      summary: Create account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                role: { type: string, enum: [student, teacher] }
+                displayName: { type: string }
+                gradeLevel: { type: integer, minimum: 1, maximum: 12, nullable: true }
+                schoolId: { type: string, nullable: true }
+              required: [email, password, role, displayName]
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  tokens: { $ref: '#/components/schemas/Tokens' }
+                required: [user, tokens]
+        '400': { description: Invalid input, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+  /auth/login:
+    post:
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+              required: [email, password]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  tokens: { $ref: '#/components/schemas/Tokens' }
+                required: [user, tokens]
+  /classes:
+    post:
+      summary: Create class (teacher)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                subject: { type: string }
+                gradeBand: { type: string }
+              required: [name, subject]
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  joinCode: { type: string }
+                  name: { type: string }
+                required: [id, joinCode, name]
+  /classes/join:
+    post:
+      summary: Join class by code (student)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                joinCode: { type: string }
+              required: [joinCode]
+      responses:
+        '200': { description: Joined }
+  /classes/{classId}/rules:
+    put:
+      summary: Upsert class rules
+      parameters:
+        - in: path
+          name: classId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                restrictedTopics:
+                  type: array
+                  items: { type: string }
+                maxEssayOutlineBullets: { type: integer, minimum: 1 }
+                requireCitationsFor:
+                  type: array
+                  items: { $ref: '#/components/schemas/ToolMode' }
+                disallowDirectAnswerModes: { type: boolean }
+                piiBlockEnabled: { type: boolean }
+      responses:
+        '200': { description: Updated }
+  /chat/sessions:
+    post:
+      summary: Create chat session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                classId: { type: string }
+                toolMode: { $ref: '#/components/schemas/ToolMode' }
+                topic: { type: string }
+              required: [classId, toolMode]
+      responses:
+        '201': { description: Created }
+  /chat/sessions/{sessionId}/messages:
+    post:
+      summary: Send message and receive assistant response
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message: { type: string, minLength: 1 }
+                metadata:
+                  type: object
+                  additionalProperties: true
+              required: [message]
+      responses:
+        '200':
+          description: Assistant response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messageId: { type: string }
+                  policy:
+                    type: object
+                    properties:
+                      status: { type: string, enum: [allowed, blocked, modified] }
+                      reasonCode: { type: string, nullable: true }
+                      flags:
+                        type: array
+                        items: { type: string }
+                  assistant:
+                    type: object
+                    properties:
+                      text: { type: string }
+                      citations:
+                        type: array
+                        items: { type: string }
+                      studyReminder: { type: string, nullable: true }
+                required: [messageId, policy, assistant]
+    get:
+      summary: List session messages
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: cursor
+          required: false
+          schema: { type: string }
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+      responses:
+        '200': { description: OK }
+  /quizzes/generate:
+    post:
+      summary: Generate quiz
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                classId: { type: string }
+                topic: { type: string }
+                gradeLevel: { type: integer }
+                questionCount: { type: integer, minimum: 1, maximum: 20 }
+                difficulty: { type: string, enum: [easy, medium, hard] }
+              required: [classId, topic, questionCount]
+      responses:
+        '201': { description: Created }
+  /quizzes/{quizId}/submit:
+    post:
+      summary: Submit quiz attempt
+      parameters:
+        - in: path
+          name: quizId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      itemId: { type: string }
+                      answer: {}
+                    required: [itemId, answer]
+              required: [answers]
+      responses:
+        '200': { description: Graded }
+  /flashcards/generate:
+    post:
+      summary: Generate flashcards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                classId: { type: string }
+                topic: { type: string }
+                notes: { type: string, nullable: true }
+                cardCount: { type: integer, minimum: 1, maximum: 50 }
+              required: [classId, topic]
+      responses:
+        '201': { description: Created }
+  /flashcards/review-queue:
+    get:
+      summary: Get due cards
+      parameters:
+        - in: query
+          name: classId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /flashcards/{cardId}/review:
+    post:
+      summary: Submit flashcard review
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating: { type: string, enum: [again, hard, good, easy] }
+              required: [rating]
+      responses:
+        '200': { description: Updated }
+  /teacher/classes/{classId}/dashboard:
+    get:
+      summary: Teacher class dashboard
+      parameters:
+        - in: path
+          name: classId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /teacher/classes/{classId}/students/{studentId}/activity:
+    get:
+      summary: Student activity timeline
+      parameters:
+        - in: path
+          name: classId
+          required: true
+          schema: { type: string }
+        - in: path
+          name: studentId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /reports/response:
+    post:
+      summary: Report an AI response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                classId: { type: string }
+                messageId: { type: string }
+                reason: { type: string }
+              required: [classId, messageId, reason]
+      responses:
+        '201': { description: Created }
