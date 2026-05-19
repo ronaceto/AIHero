@@ -1,0 +1,17 @@
+{
+  "name": "studysidekickai-backend",
+  "version": "0.1.0",
+  "description": "StudySidekickAI V1 backend scaffold with dependency-free health and auth endpoints.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node --test",
+    "db:migrate": "node scripts/migrate.js",
+    "db:migrate:core": "node scripts/migrate.js --to 001_init.sql"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
