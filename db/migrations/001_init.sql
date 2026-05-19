@@ -1,13 +1,13 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-CREATE TABLE schools (
+CREATE TABLE IF NOT EXISTS schools (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   region TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT,
@@ -20,7 +20,7 @@ CREATE TABLE users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE classes (
+CREATE TABLE IF NOT EXISTS classes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   teacher_id UUID NOT NULL REFERENCES users(id),
   name TEXT NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE classes (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE class_memberships (
+CREATE TABLE IF NOT EXISTS class_memberships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -41,7 +41,7 @@ CREATE TABLE class_memberships (
   UNIQUE (class_id, user_id)
 );
 
-CREATE TABLE rule_sets (
+CREATE TABLE IF NOT EXISTS rule_sets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   version INT NOT NULL,
@@ -55,6 +55,6 @@ CREATE TABLE rule_sets (
   UNIQUE (class_id, version)
 );
 
-CREATE INDEX idx_users_school_id ON users(school_id);
-CREATE INDEX idx_classes_teacher_id ON classes(teacher_id);
-CREATE INDEX idx_class_memberships_user ON class_memberships(user_id);
+CREATE INDEX IF NOT EXISTS idx_users_school_id ON users(school_id);
+CREATE INDEX IF NOT EXISTS idx_classes_teacher_id ON classes(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_class_memberships_user ON class_memberships(user_id);

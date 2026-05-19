@@ -51,6 +51,22 @@ components:
         - code_helper
         - teacher_approved_prompt_builder
 paths:
+  /health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok] }
+                  service: { type: string }
+                  timestamp: { type: string, format: date-time }
+                required: [status, service, timestamp]
   /auth/signup:
     post:
       summary: Create account
@@ -95,6 +111,30 @@ paths:
                 email: { type: string, format: email }
                 password: { type: string }
               required: [email, password]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  tokens: { $ref: '#/components/schemas/Tokens' }
+                required: [user, tokens]
+  /auth/refresh:
+    post:
+      summary: Refresh auth tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken: { type: string }
+              required: [refreshToken]
       responses:
         '200':
           description: OK

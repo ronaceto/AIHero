@@ -1,4 +1,4 @@
-CREATE TABLE policy_flags (
+CREATE TABLE IF NOT EXISTS policy_flags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -12,10 +12,10 @@ CREATE TABLE policy_flags (
   resolved_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_policy_flags_reason ON policy_flags(reason_code);
-CREATE INDEX idx_policy_flags_status ON policy_flags(status);
+CREATE INDEX IF NOT EXISTS idx_policy_flags_reason ON policy_flags(reason_code);
+CREATE INDEX IF NOT EXISTS idx_policy_flags_status ON policy_flags(status);
 
-CREATE TABLE audit_events (
+CREATE TABLE IF NOT EXISTS audit_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   actor_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   actor_role TEXT,
@@ -26,9 +26,9 @@ CREATE TABLE audit_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_audit_events_type_created ON audit_events(event_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_events_type_created ON audit_events(event_type, created_at);
 
-CREATE TABLE response_reports (
+CREATE TABLE IF NOT EXISTS response_reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   reporter_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,

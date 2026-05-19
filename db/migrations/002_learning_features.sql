@@ -1,4 +1,4 @@
-CREATE TABLE chat_sessions (
+CREATE TABLE IF NOT EXISTS chat_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -12,7 +12,7 @@ CREATE TABLE chat_sessions (
   ended_at TIMESTAMPTZ
 );
 
-CREATE TABLE chat_messages (
+CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
   sender TEXT NOT NULL CHECK (sender IN ('student','assistant','system')),
@@ -26,9 +26,9 @@ CREATE TABLE chat_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_chat_messages_session_created ON chat_messages(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session_created ON chat_messages(session_id, created_at);
 
-CREATE TABLE quizzes (
+CREATE TABLE IF NOT EXISTS quizzes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   student_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -39,7 +39,7 @@ CREATE TABLE quizzes (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE quiz_items (
+CREATE TABLE IF NOT EXISTS quiz_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   quiz_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
   item_type TEXT NOT NULL CHECK (item_type IN ('mcq','short_answer','true_false')),
@@ -49,7 +49,7 @@ CREATE TABLE quiz_items (
   explanation TEXT
 );
 
-CREATE TABLE quiz_attempts (
+CREATE TABLE IF NOT EXISTS quiz_attempts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   quiz_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -57,7 +57,7 @@ CREATE TABLE quiz_attempts (
   submitted_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE quiz_responses (
+CREATE TABLE IF NOT EXISTS quiz_responses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   attempt_id UUID NOT NULL REFERENCES quiz_attempts(id) ON DELETE CASCADE,
   item_id UUID NOT NULL REFERENCES quiz_items(id) ON DELETE CASCADE,
@@ -66,7 +66,7 @@ CREATE TABLE quiz_responses (
   feedback TEXT
 );
 
-CREATE TABLE flashcards (
+CREATE TABLE IF NOT EXISTS flashcards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -77,7 +77,7 @@ CREATE TABLE flashcards (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE flashcard_reviews (
+CREATE TABLE IF NOT EXISTS flashcard_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   card_id UUID NOT NULL REFERENCES flashcards(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -87,4 +87,4 @@ CREATE TABLE flashcard_reviews (
   reviewed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_flashcard_reviews_student_due ON flashcard_reviews(student_id, next_due_at);
+CREATE INDEX IF NOT EXISTS idx_flashcard_reviews_student_due ON flashcard_reviews(student_id, next_due_at);
